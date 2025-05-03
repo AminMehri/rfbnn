@@ -3,6 +3,7 @@ import random
 import math
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 class Pattern:
     def __init__(self, input, output):
@@ -350,3 +351,107 @@ print(f"Median Absolute Error (MedAE): {medae}")
 print(f"Mean Squared Logarithmic Error (MSLE): {msle}")
 print(f"Huber Loss: {huber_loss}")
 print(f"Mean Relative Error (MRE): {mre}")
+
+# رسم سیگنال خروجی شبکه عصبی RNN
+def plot_rnn_output(rnn, data):
+    """
+    Plot the output signal of the RNN model.
+    :param rnn: The RNN model.
+    :param data: Test data.
+    """
+    predicted_values_rbf = []
+    for pattern in data.patterns:
+        rbf_network.pass_input_to_network(pattern.input)
+        predicted_values_rbf.append(rbf_network.output[0])
+    
+    predicted_values_rnn = []
+    for pattern in data.patterns:
+        x = np.array(pattern.input).reshape(1, -1)  # ورودی
+        y_pred = rnn.forward(x)  # پیش‌بینی خروجی
+        predicted_values_rnn.append(y_pred[0][0])
+    
+    # رسم نمودار سیگنال خروجی
+    plt.figure(figsize=(10, 6))
+    plt.plot(predicted_values_rbf, label='RBF Signal', marker='o', linestyle='-', color='red')
+    plt.plot(predicted_values_rnn, label='RNN Signal', marker='o', linestyle='-', color='green')
+    plt.xlabel('Sample Index')
+    plt.ylabel('Output Value')
+    plt.title('RNN Output Signal')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+class SimpleRNN:
+    def __init__(self, input_size, hidden_size, output_size, learning_rate=0.0262):
+        """
+        Initialize a simple RNN.
+        :param input_size: Number of input features.
+        :param hidden_size: Number of hidden units.
+        :param output_size: Number of output units.
+        :param learning_rate: Learning rate for gradient descent.
+        """
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.learning_rate = learning_rate
+        
+        # وزن‌ها و بایاس‌ها
+        self.W_xh = np.random.randn(input_size, hidden_size) * 0.01  # وزن برای ورودی به پنهان
+        self.W_hh = np.random.randn(hidden_size, hidden_size) * 0.01  # وزن برای پنهان به پنهان
+        self.W_hy = np.random.randn(hidden_size, output_size) * 0.01  # وزن برای پنهان به خروجی
+        self.b_h = np.zeros((1, hidden_size))  # بایاس برای لایه پنهان
+        self.b_y = np.zeros((1, output_size))  # بایاس برای لایه خروجی
+        
+        # حالت پنهان
+        self.hidden_state = np.zeros((1, hidden_size))
+
+    def forward(self, x):
+        """
+        Forward pass through the RNN.
+        :param x: Input data (shape: [1, input_size]).
+        :return: Output of the RNN.
+        """
+        # به‌روزرسانی حالت پنهان
+        self.hidden_state = np.tanh(np.dot(x, self.W_xh) + np.dot(self.hidden_state, self.W_hh) + self.b_h)
+        
+        # محاسبه خروجی
+        output = np.dot(self.hidden_state, self.W_hy) + self.b_y
+        return output
+
+    def backward(self, x, target):
+        """
+        Backward pass through the RNN (gradient descent).
+        :param x: Input data (shape: [1, input_size]).
+        :param target: Target output (shape: [1, output_size]).
+        """
+        # محاسبه خطا
+        output = self.forward(x)
+        error = output - target
+        
+        # گرادیان‌ها
+        dW_hy = np.dot(self.hidden_state.T, error)
+        db_y = error
+        
+        dh = np.dot(error, self.W_hy.T) * (1 - self.hidden_state ** 2)
+        dW_xh = np.dot(x.T, dh)
+        dW_hh = np.dot(self.hidden_state.T, dh)
+        db_h = dh
+        
+        # به‌روزرسانی وزن‌ها و بایاس‌ها
+        self.W_hy -= self.learning_rate * dW_hy
+        self.b_y -= self.learning_rate * db_y
+        self.W_xh -= self.learning_rate * dW_xh
+        self.W_hh -= self.learning_rate * dW_hh
+        self.b_h -= self.learning_rate * db_h
+
+    def reset_hidden_state(self):
+        """
+        Reset the hidden state of the RNN.
+        """
+        self.hidden_state = np.zeros((1, self.hidden_size))
+
+
+rnn = SimpleRNN(input_size=1, hidden_size=5, output_size=1, learning_rate=0.0262)
+
+# رسم سیگنال خروجی برای داده‌های تست
+plot_rnn_output(rnn, test_data)

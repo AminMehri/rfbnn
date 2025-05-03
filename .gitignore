@@ -1,0 +1,11 @@
+venv
+venv/
+
+__pycache__
+
+old
+old/
+
+ann
+
+.DS_Store
